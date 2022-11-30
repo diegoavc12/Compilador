@@ -10,8 +10,8 @@ reserved = {
     "false": "BOOLVAL",
     "if": "IF",
     "else": "ELSE",
-    "and":"AND",
-    "or":"OR"
+    "and":"LOGOP",
+    "or":"LOGOP"
 }
 
 
@@ -20,7 +20,7 @@ tokens = [
 ]
 tokens.extend(reserved.values())
 
-literals = ['=', '+', '-', '*','/','^',';', '(', ')', '{', '}']
+literals = ['=', '+', '-', '*','/','^',';', '(', ')', '{', '}','<','>']
 
 # Tokens
 
@@ -95,6 +95,11 @@ def p_prog(p):
     abstractTree.type = 'root'
     abstractTree.childrens.extend(p[1])
 
+def p_empty(p):
+     'empty :'
+     pass
+ 
+
 def p_statements_recursion(p):
     '''stmts : statement stmts
              | statement '''
@@ -105,6 +110,8 @@ def p_statements_recursion(p):
         p[0] = stmts
     else: 
         p[0] = [ stmt ]
+
+
 
 
 def p_dcl_declare_int(p):
@@ -139,14 +146,28 @@ def p_statement_print(p):
     p[0] = n
 
 def p_statement_if(p):
-    'statement : IF "(" boolexp ")" "{" stmts "}"'
+    'statement : IF "(" boolexp ")" "{" stmts "}" elsestmt'
     n = Node()
     n.type = 'IF'
     n2 = Node()
+    n3 = Node()
     n2.childrens = p[6]
     n.childrens.append(p[3])
     n.childrens.append(n2)
+    n.childrens.append(p[8])
     p[0] = n
+
+def p_elsestmt(p):
+    '''elsestmt : ELSE "{" stmts "}" 
+        | empty 
+    '''
+    n = Node()
+    n.type='ELSE'
+    n2 = Node()
+    n2.childrens = p[3]
+    n.childrens.append(n2)
+    p[0] = n
+
 
 def p_statement_assign(p):
     'statement : NAME "=" expression ";"'
@@ -177,6 +198,7 @@ def p_expression_binop(p):
                   | expression '*' expression
                   | expression '/' expression 
                   | expression '^' expression'''
+
                   
     if p[2] == '+':
         n = Node()
@@ -241,6 +263,44 @@ def p_bool_expression(p):
     n.type = 'BOOLVAL'
     n.val = (p[1] == 'true')
     p[0] = n
+
+
+
+
+def p_bool_expression_op(p):
+    ''' boolexp : boolexp LOGOP boolexp 
+        | expression '>' expression
+        | expression '<' expression
+    '''
+    if p[2]== 'and':
+        n = Node()
+        n.type = 'and'
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+
+    elif p[2]== 'or':
+        n = Node()
+        n.type = 'or'
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+
+    elif p[2]== '<':
+        n = Node()
+        n.type = '<'
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+    
+    elif p[2]== '>':
+        n = Node()
+        n.type = '>'
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+    
+
 
 
 def p_expression_name(p):
