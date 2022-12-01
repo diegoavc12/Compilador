@@ -181,13 +181,41 @@ def p_statement_while(p):
 
 
 
-def p_statement_comp_assign(p):
-    '''statement: NAME "+=" expression
-        | NAME "-=" expression
+def p_compassign(p):
+    '''compassign : NAME PEQUAL expression
+        | NAME MEQUAL expression
     '''
+    if p[1] not in symbolsTable["table"]:
+        print ( "You must declare a variable before using it")
+    n = Node()
+    if(p[2]=="+="):
+        n.type = 'COMPASSIGN - +='
+    elif (p[2]=="-="):
+        n.type = 'COMPASSIGN - -='    
+    ##n.childrens.append(p[1])
+    if p[1] in symbolsTable["table"]:
+        n1 = Node()
+        n1.type = 'ID'
+        n1.val = p[1]
+        n.childrens.append(n1)
+    else: 
+        print("Error undeclared variable")
 
-#def p_statement_for(p):
-#    'statement: FOR "(" assign boolexp ";"  ")"  '
+    n.childrens.append(p[3])
+    p[0] = n
+
+
+def p_statement_for(p):
+    'statement : FOR "(" assign boolexp ";" compassign ")" "{" stmts "}" '
+    n = Node()
+    n.type = 'FOR'
+    n2 = Node()
+    n2.childrens = p[9]
+    n.childrens.append(p[3])
+    n.childrens.append(p[4])
+    n.childrens.append(p[6])
+    n.childrens.append(n2)
+    p[0] = n
 
 def p_elsestmt(p):
     '''elsestmt : ELSE "{" stmts "}" 
@@ -207,6 +235,11 @@ def p_elsestmt(p):
 def p_statement_assign(p):
     "statement : assign"
     p[0]=p[1]
+
+def p_statement_compassign(p):
+    "statement : compassign"
+    p[0]=p[1]
+
 
 def p_assign(p):
     'assign : NAME "=" expression ";"'
@@ -408,6 +441,13 @@ def genTAC(node):
     global labelCounter
     if ( node.type == "ASIGN" ):
         print(node.childrens[0].val  + " := " + genTAC(node.childrens[1]) )
+
+    elif ( node.type == "COMPASSIGN - +=" ):
+        print(node.childrens[0].val  + " += " + genTAC(node.childrens[1]) )
+
+    elif ( node.type == "COMPASSING - -=" ):
+        print(node.childrens[0].val  + " -= " + genTAC(node.childrens[1]) )
+
     elif ( node.type == "INUMBER") or (node.type=="ID"):
         return str(node.val)
     elif ( node.type == "+"):
@@ -471,6 +511,20 @@ def genTAC(node):
         varCounter = varCounter +1
         print( tempVar + " := " + genTAC(node.childrens[0]) + " != " + genTAC(node.childrens[1]))
         return tempVar
+
+    elif ( node.type == "+="):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " += " + genTAC(node.childrens[1]))
+        return tempVar
+
+    elif ( node.type == "-="):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " != " + genTAC(node.childrens[1]))
+        return tempVar
+           
+       
        
     elif ( node.type == "PRINT"):
         print( "PRINT " + genTAC(node.childrens[0]))
@@ -502,6 +556,20 @@ def genTAC(node):
         labelCounter = labelCounter + 1
         print ( "gotoLabelIf " + tempVar + " " + tempLabel)
         genTAC(node.childrens[1])
+        print ( tempLabel)
+
+    elif(node.type== "FOR"):
+        print("FOR")
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print(genTAC(node.childrens[0]))
+        print ( tempVar + " := !" + genTAC(node.childrens[1]))
+        tempLabel = "l" + str(labelCounter)
+        labelCounter = labelCounter + 1
+        print ( "gotoLabelIf " + tempVar + " " + tempLabel)
+        genTAC(node.childrens[3])
+        genTAC(node.childrens[2])
+
         print ( tempLabel)
     else:
         for child in node.childrens:
