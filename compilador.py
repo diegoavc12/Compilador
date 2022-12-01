@@ -11,18 +11,28 @@ reserved = {
     "if": "IF",
     "else": "ELSE",
     "and":"LOGOP",
-    "or":"LOGOP"
+    "or":"LOGOP",
+    "while": "WHILE",
+    "for" : "FOR"
+
 }
 
 
 tokens = [
-    'NAME', 'INUMBER', 'FNUMBER',
+    'NAME', 'INUMBER', 'FNUMBER', 'LEQUAL', 'GEQUAL', 'EQUAL', 'DIFFERENT','PEQUAL','MEQUAL'
 ]
 tokens.extend(reserved.values())
 
 literals = ['=', '+', '-', '*','/','^',';', '(', ')', '{', '}','<','>']
 
 # Tokens
+
+t_LEQUAL=r'<='
+t_GEQUAL=r'>='
+t_EQUAL=r'=='
+t_DIFFERENT=r'!='
+t_PEQUAL=r'\+='
+t_MEQUAL=r'-='
 
 def t_NAME(t):
     r'[a-zA-Z_]+[a-zA-Z0-9]*' #r'[a-eg-hj-oq-z]'
@@ -77,7 +87,10 @@ class Node:
         print(r)
         #print(self.childrens)
         for c in self.childrens:
-            c.print(lvl+1)
+            if(len(self.childrens)>0):
+                 c.print(lvl+1)
+            
+           
         
 
 # dictionary of names
@@ -96,7 +109,7 @@ def p_prog(p):
     abstractTree.childrens.extend(p[1])
 
 def p_empty(p):
-     'empty :'
+     'empty : '
      pass
  
 
@@ -150,27 +163,53 @@ def p_statement_if(p):
     n = Node()
     n.type = 'IF'
     n2 = Node()
-    n3 = Node()
     n2.childrens = p[6]
     n.childrens.append(p[3])
     n.childrens.append(n2)
     n.childrens.append(p[8])
     p[0] = n
 
-def p_elsestmt(p):
-    '''elsestmt : ELSE "{" stmts "}" 
-        | empty 
-    '''
+def p_statement_while(p):
+    'statement : WHILE "(" boolexp ")" "{" stmts "}" '
     n = Node()
-    n.type='ELSE'
+    n.type = 'WHILE'
     n2 = Node()
-    n2.childrens = p[3]
+    n2.childrens = p[6]
+    n.childrens.append(p[3])
     n.childrens.append(n2)
     p[0] = n
 
 
+
+def p_statement_comp_assign(p):
+    '''statement: NAME "+=" expression
+        | NAME "-=" expression
+    '''
+
+#def p_statement_for(p):
+#    'statement: FOR "(" assign boolexp ";"  ")"  '
+
+def p_elsestmt(p):
+    '''elsestmt : ELSE "{" stmts "}" 
+        | empty 
+    '''
+    if len(p)>2:
+        n = Node()
+        n.type = 'ELSE'
+        n2 = Node()
+        n2.childrens = p[3]
+        n.childrens.append(n2)
+        p[0] = n
+    else: 
+        n= Node()
+        p[0]= n
+
 def p_statement_assign(p):
-    'statement : NAME "=" expression ";"'
+    "statement : assign"
+    p[0]=p[1]
+
+def p_assign(p):
+    'assign : NAME "=" expression ";"'
     if p[1] not in symbolsTable["table"]:
         print ( "You must declare a variable before using it")
     n = Node()
@@ -271,6 +310,12 @@ def p_bool_expression_op(p):
     ''' boolexp : boolexp LOGOP boolexp 
         | expression '>' expression
         | expression '<' expression
+        | expression LEQUAL expression
+        | expression GEQUAL expression
+        | expression EQUAL expression
+        | expression DIFFERENT expression
+
+
     '''
     if p[2]== 'and':
         n = Node()
@@ -300,6 +345,33 @@ def p_bool_expression_op(p):
         n.childrens.append(p[3])
         p[0] = n
     
+    elif p[2]== '<=':
+        n = Node()
+        n.type = "<="
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+
+    elif p[2]== '>=':
+        n = Node()
+        n.type = ">="
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+
+    elif p[2]== '!=':
+        n = Node()
+        n.type = "!="
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
+
+    elif p[2]== '==':
+        n = Node()
+        n.type = "=="
+        n.childrens.append(p[1])
+        n.childrens.append(p[3])
+        p[0] = n
 
 
 
@@ -363,12 +435,69 @@ def genTAC(node):
         varCounter = varCounter +1
         print( tempVar + " := " + genTAC(node.childrens[0]) + " - " + genTAC(node.childrens[1]))
         return tempVar
+
+    elif ( node.type == "<"):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " < " + genTAC(node.childrens[1]))
+        return tempVar
+
+    elif ( node.type == ">"):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " > " + genTAC(node.childrens[1]))
+        return tempVar
+
+    elif ( node.type == "<="):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " <= " + genTAC(node.childrens[1]))
+        return tempVar
+
+    elif ( node.type == ">="):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " >= " + genTAC(node.childrens[1]))
+        return tempVar
+
+    elif ( node.type == "=="):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " == " + genTAC(node.childrens[1]))
+        return tempVar
+
+    elif ( node.type == "!="):
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print( tempVar + " := " + genTAC(node.childrens[0]) + " != " + genTAC(node.childrens[1]))
+        return tempVar
+       
     elif ( node.type == "PRINT"):
         print( "PRINT " + genTAC(node.childrens[0]))
     elif ( node.type == "IF" ):
+        print("IF")
         tempVar = "t" + str(varCounter)
         varCounter = varCounter +1
-        print ( tempVar + " := !" + str(node.childrens[0].val))
+        print ( tempVar + " := !" + genTAC(node.childrens[0]))
+        tempLabel = "l" + str(labelCounter)
+        labelCounter = labelCounter + 1
+        print ( "gotoLabelIf " + tempVar + " " + tempLabel)
+        genTAC(node.childrens[1])
+        if(len(node.childrens)>2):
+            genTAC(node.childrens[2])
+        print ( tempLabel)
+
+    elif(node.type=="ELSE"):
+        print("ELSE")
+        for child in node.childrens:
+            genTAC(child)
+
+
+    elif(node.type== " WHILE"):
+        print("WHILE")
+        tempVar = "t" + str(varCounter)
+        varCounter = varCounter +1
+        print ( tempVar + " := !" + genTAC(node.childrens[0]))
         tempLabel = "l" + str(labelCounter)
         labelCounter = labelCounter + 1
         print ( "gotoLabelIf " + tempVar + " " + tempLabel)
